@@ -1,0 +1,43 @@
+[tool.ruff]
+src = ["src"]
+target-version = "py311"
+line-length = 127
+exclude = [
+    ".git", ".mypy_cache", ".ruff_cache", ".venv", "__pypackages__",
+    "build", "dist", "venv"
+]
+
+[tool.ruff.lint]
+select = [
+    "A",  # flake8-builtins (shadowing builtins)
+    "ANN",  # flake8-annotations (type annotation issues)
+    "B",  # flake8-bugbear (find possible bugs)
+    "C",  # complexity
+    "D",  # docstrings
+    "E",  # pycodestyle
+    "F",  # pyflakes/autoflake
+    "I",  # isort (import sorting)
+    "SIM",  # flake8-simplify (simplify code)
+    "UP",  # pyupgrade
+    "W",  # pycodestyle
+]
+ignore = [
+    "D203",  # 1 blank line required before class docstring
+    "D213",  # Multi-line docstring summary should start at the second line
+]
+fixable = ["ALL"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 25
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "src"
+pretty = true
+strict = true
+ignore_missing_imports = true
+
+[tool.codespell]
+skip = "*.json,*.csv,*.lock,./.git/*,./.venv/*"
+check-filenames = true
+check-hidden = true

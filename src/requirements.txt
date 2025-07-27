@@ -1,0 +1,5 @@
+fastapi
+playwright
+pydantic
+python-multipart
+uvicorn[standard]

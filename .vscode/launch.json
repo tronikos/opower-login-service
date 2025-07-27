@@ -1,0 +1,24 @@
+{
+  "configurations": [
+    {
+      "type": "debugpy",
+      "request": "launch",
+      "name": "Launch Opower Login Service",
+      "module": "uvicorn",
+      "args": [
+        "src.app.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "7937"
+      ],
+      "env": {
+        "BROWSER_HEADLESS": "false"
+      },
+      "jinja": true,
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

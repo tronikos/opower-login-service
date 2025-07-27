@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Utility Login Tester</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: sans-serif; margin: 2em; background-color: #f4f4f9; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; padding: 2em; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1, h2 { color: #005a9c; }
+        label { display: block; margin-bottom: 0.5em; font-weight: bold; }
+        input, select, button { width: 100%; padding: 0.8em; margin-bottom: 1em; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1em; }
+        button { background-color: #007bff; color: white; cursor: pointer; border: none; } button:hover { background-color: #0056b3; } button:disabled { background-color: #ccc; }
+        .token-box, pre { background-color: #e9ecef; border: 1px solid #ced4da; padding: 1em; border-radius: 4px; word-wrap: break-word; font-family: monospace; }
+        .error { color: #dc3545; font-weight: bold; border: 1px solid #dc3545; background-color: #f8d7da; padding: 1em; border-radius: 4px;}
+        .mfa-choice button { width: auto; margin-right: 1em; background-color: #6c757d; } .mfa-choice button:hover { background-color: #5a6268; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Utility Login Tester</h1>
+        <div id="login-form">
+            <form onsubmit="handleLogin(event)">
+                <label for="utility">Utility:</label>
+                <select id="utility" name="utility"><!-- UTILITY_OPTIONS_PLACEHOLDER --></select>
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required>
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
+                <button type="submit" id="submit-btn">Login</button>
+            </form>
+        </div>
+        <div id="result-area"></div>
+        <div id="screenshot-area" style="margin-top: 2em;"></div>
+    </div>
+
+    <script>
+        const loginForm = document.getElementById('login-form');
+        const resultArea = document.getElementById('result-area');
+        const screenshotArea = document.getElementById('screenshot-area');
+
+        function showLoading(message) {
+            document.querySelectorAll('button').forEach(b => b.disabled = true);
+            resultArea.innerHTML = `<h2>${message}...</h2><p>Please wait, this can take up to 30 seconds.</p>`;
+            screenshotArea.innerHTML = '';
+        }
+
+        function displayScreenshot(uri) {
+            if (!uri) {
+                screenshotArea.innerHTML = '';
+                return;
+            }
+            screenshotArea.innerHTML = `
+                <details open>
+                    <summary style="cursor: pointer; font-weight: bold; margin-bottom: 1em;">Show/Hide Browser Screenshot</summary>
+                    <img src="${uri}" alt="Browser screenshot" style="width: 100%; border: 1px solid #ccc; max-height: 80vh; object-fit: contain; background-color: #eee;">
+                </details>`;
+        }
+
+        async function handleApiCall(endpoint, payload) {
+            const response = await fetch(endpoint + '?include_screenshot=true', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            displayScreenshot(result.screenshot_uri);
+            if (!response.ok) {
+                result.status = result.status || (response.status === 401 ? 'login_failed' : 'error');
+            }
+            return result;
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            showLoading('Logging In');
+            loginForm.style.display = 'none';
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData.entries());
+            const result = await handleApiCall('/api/v1/login', data);
+            processApiResponse(result);
+        }
+
+        function processApiResponse(result, sessionId) {
+            if (result.status === 'success') {
+                resultArea.innerHTML = `<h2>Login Successful!</h2><p>Access token:</p><div class="token-box">${result.access_token}</div><br/><a href="/"><button>Start Over</button></a>`;
+            } else if (result.status === 'mfa_required') {
+                let mfaButtons = '';
+                for (const [key, value] of Object.entries(result.mfa_options)) {
+                    mfaButtons += `<button onclick="handleMfaSelect('${result.session_id}', '${key}')">${value}</button>`;
+                }
+                resultArea.innerHTML = `<h2>MFA Required</h2><p>Choose a method:</p><div class="mfa-choice">${mfaButtons}</div>`;
+            } else if (result.status === 'mfa_failed') {
+                resultArea.innerHTML = `<h2>Enter Security Code</h2>
+                    <div class="error">${result.error}. Please try again.</div>
+                    <form onsubmit="handleMfaSubmit(event, '${sessionId}')">
+                        <label for="code">Security Code:</label>
+                        <input type="text" id="code" name="code" required>
+                        <button type="submit">Confirm Code</button>
+                    </form>`;
+            } else { // login_failed or general error
+                resultArea.innerHTML = `<div class="error">Failed: ${result.error || result.detail || 'Unknown error'}</div><br/><a href="/"><button>Try Again</button></a>`;
+                loginForm.style.display = 'block';
+                document.querySelectorAll('button').forEach(b => b.disabled = false);
+            }
+        }
+
+        async function handleMfaSelect(sessionId, method) {
+            showLoading('Requesting MFA Code');
+            const result = await handleApiCall('/api/v1/mfa/select', { session_id: sessionId, method: method });
+            if (result.status === 'code_sent') {
+                resultArea.innerHTML = `<h2>Enter Security Code</h2>
+                    <form onsubmit="handleMfaSubmit(event, '${sessionId}')">
+                        <label for="code">Security Code:</label>
+                        <input type="text" id="code" name="code" required>
+                        <button type="submit">Confirm Code</button>
+                    </form>`;
+            } else {
+                resultArea.innerHTML = `<div class="error">MFA Select Failed: ${result.error || result.detail}</div><br/><a href="/"><button>Start Over</button></a>`;
+            }
+        }
+
+        async function handleMfaSubmit(event, sessionId) {
+            event.preventDefault();
+            showLoading('Submitting MFA Code');
+            const formData = new FormData(event.target);
+            const code = formData.get('code');
+            const result = await handleApiCall('/api/v1/mfa/submit', { session_id: sessionId, code: code });
+            processApiResponse(result, sessionId); // Pass session ID for potential retry
+        }
+    </script>
+</body>
+</html>
