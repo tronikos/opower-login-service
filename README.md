@@ -2,7 +2,45 @@
 
 This service provides a FastAPI-based web interface to automate logins for Opower-based utility websites using Playwright for headless browser automation. It is designed to handle complex login flows, including Multi-Factor Authentication (MFA), and intelligently manages and persists sessions to minimize re-logins.
 
-This service is intended for use with the [tronikos/opower](https://github.com/tronikos/opower) project.
+This service is intended for use with the [tronikos/opower](https://github.com/tronikos/opower) project and the [Opower integration](https://www.home-assistant.io/integrations/opower) in Home Assistant.
+
+## Supported Utilities
+
+- Pacific Gas & Electric (PG&E)
+
+## Installation
+
+You can run this service in two ways: as a Home Assistant Add-on or as a standalone Docker container.
+
+### 1. Home Assistant Add-on (Recommended)
+
+This is the easiest way to get started if you are a Home Assistant user.
+
+1. Click the button below to add the repository to your Home Assistant instance:
+    [![Open your Home Assistant instance and show the add add-on repository dialog with a specific repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Ftronikos%2Fopower-login-service)
+2. In the repository, find the "Opower Login Service" add-on and click **Install**.
+3. Start the add-on.
+
+### 2. Docker
+
+The published multi-arch image is available on the GitHub Container Registry.
+
+1. **Pull the latest image:**
+
+    ```sh
+    docker pull ghcr.io/tronikos/opower-login-service:latest
+    ```
+
+2. **Run the container:**
+    To persist login sessions across container restarts, you must mount a volume to the `/data` directory.
+
+    ```sh
+    docker run -d -p 7937:7937 -v "$(pwd)/sessions:/data" --name opower-login-service --rm ghcr.io/tronikos/opower-login-service:latest
+    ```
+
+    *For Windows PowerShell, use `-v "${pwd}/sessions:/data"`*
+
+The service will be available at `http://localhost:7937`.
 
 ## Features
 
@@ -11,23 +49,12 @@ This service is intended for use with the [tronikos/opower](https://github.com/t
 - **Intelligent Session Management**: Keeps one active browser session per user in memory to avoid redundant logins and resource creation. Stale sessions are automatically cleaned up.
 - **Session Persistence**: Saves successful browser session data (cookies, local storage) to disk, which allows you to skip the MFA verification step on future logins.
 - **Modern Tech Stack**: Built with FastAPI, Pydantic, and modern asynchronous Python.
-- **Containerized**: Comes with a production-ready, multi-arch (amd64, arm64) Dockerfile and a GitHub Actions workflow for automated builds and releases to GHCR.
+- **Containerized**: Comes with a production-ready, multi-arch (amd64, arm64/aarch64) Dockerfile and a GitHub Actions workflow for automated builds and releases to GHCR.
 - **Extensible**: Easily support new utilities by implementing a simple Python class.
 
-## Supported Utilities
-
-- Pacific Gas & Electric (PG&E)
-
-### Adding a New Utility
-
-In `src/app/main.py`, create a new class that inherits from `UtilityAutomator` similar to the existing `PgeAutomator` class.
-The service will automatically discover and register it.
-
-The best way to develop the automation logic is to run the service locally with a visible browser, see below.
-Use the web interface at `http://localhost:7937` to test your changes in real-time.
-Use your browser's "Inspect Element" tool to find the correct selectors for buttons and input fields.
-
 ## Local Development Setup
+
+Follow these steps if you want to contribute to the project or run it from source.
 
 ### 1. Create a Virtual Environment
 
@@ -62,11 +89,9 @@ pre-commit autoupdate
 pre-commit run --all-files
 ```
 
-## Running the Service
+### 4. Running the Service Locally
 
-### Running Locally
-
-For development, you can run the service directly with `uvicorn`. Setting `BROWSER_HEADLESS=false` will open a visible browser window, which is useful for debugging automation scripts.
+For development, you can run the service directly with `uvicorn`.
 
 ```sh
 # Run in headless mode (default)
@@ -79,31 +104,21 @@ BROWSER_HEADLESS=false uvicorn src.app.main:app --port 7937
 
 Once running, access the interactive test form at `http://localhost:7937`.
 
-### Running with Docker
+Alternatively, you can build and run a Docker container from source code.
 
-The provided `Dockerfile` builds a production-ready container.
+```sh
+docker build -t opower-login-service src
+docker run -d -p 7937:7937 -v "$(pwd)/sessions:/data" --name opower-login-service --rm opower-login-service
+docker stop opower-login-service
+```
 
-1. **Build the Docker Image:**
+## Adding a New Utility
 
-    ```sh
-    docker build -t opower-login-service src
-    ```
+It's easy to add support for a new Opower-based utility.
 
-2. **Run the Docker Container:**
-
-    To persist login sessions across container restarts, you must mount a volume to the `/data` directory.
-
-    ```sh
-    docker run -d -p 7937:7937 -v "$(pwd)/sessions:/data" --name opower-login-service --rm opower-login-service
-    ```
-
-    The service will be available at `http://localhost:7937`.
-
-    To stop the Docker container.
-
-    ```sh
-    docker stop opower-login-service
-    ```
+1. In `src/app/main.py`, create a new class that inherits from `UtilityAutomator` similar to the existing `PgeAutomator` class. The service will automatically discover and register it.
+2. Run the service locally with a visible browser (see above).
+3. Use the web interface at `http://localhost:7937` to test your changes in real-time. Use your browser's "Inspect Element" tool to find the correct selectors for buttons and input fields.
 
 ## API Endpoints
 

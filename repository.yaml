@@ -1,0 +1,4 @@
+# https://developers.home-assistant.io/docs/add-ons/repository#repository-configuration
+name: Opower Login Service Add-On Repository
+url: 'https://github.com/tronikos/opower-login-service'
+maintainer: tronikos

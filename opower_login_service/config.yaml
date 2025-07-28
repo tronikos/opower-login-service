@@ -1,0 +1,17 @@
+name: Opower Login Service
+version: "v0.0.1"
+slug: opower_login_service
+description: A service to automate logins for Opower-based utility websites.
+url: "https://github.com/tronikos/opower-login-service"
+image: ghcr.io/tronikos/opower-login-service
+arch:
+  - aarch64
+  - amd64
+init: false
+map:
+  - data:rw
+ports:
+  7937/tcp: 7937
+ports_description:
+  7937/tcp: Utility Login Tester
+webui: http://[HOST]:[PORT:7937]
