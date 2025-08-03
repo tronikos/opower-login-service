@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This repository has been archived and is no longer maintained.**
+> It was actually never used by the Opower Home Assistant integration and the Opower library doesn't depend on this.
+
 # Opower Utility Login Service
 
 This service provides a FastAPI-based web interface to automate logins for Opower-based utility websites using Playwright for headless browser automation. It is designed to handle complex login flows, including Multi-Factor Authentication (MFA), and intelligently manages and persists sessions to minimize re-logins.
